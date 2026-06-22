@@ -10,7 +10,7 @@
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const DBD_API_BASE   = 'https://openapi.dbd.go.th/api/v1/juristic_person/';
-const DBD_TEST_ID    = '0107567000414';
+// const DBD_TEST_ID    = '0107567000414';
 
 // Google Fonts CSS endpoint for Sarabun. We deliberately fetch the *CSS*
 // at runtime rather than hardcoding a fonts.gstatic.com file URL: Google
@@ -44,7 +44,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   addItemRow();
-  addItemRow();
+  //addItemRow();
 });
 
 function isoDate(d) { return d.toISOString().slice(0, 10); }
@@ -58,14 +58,14 @@ function updateQuoteNo() {
     return;
   }
   const d = new Date(dateVal + 'T00:00:00');
-  const yy = String((d.getFullYear() + 543) % 100).padStart(2, '0'); // พ.ศ. 2 หลัก
+  const   yy = String((d.getFullYear() + 543) % 100).padStart(2, '0'); // พ.ศ. 2 หลัก
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const seq = String(parseInt(seqRaw, 10) || 0).padStart(2, '0');
   document.getElementById('quoteNo').value = `Q${yy}${mm}-${seq}`;
 }
 
 // ── Valid Until = quote date + N days ───────────────────────────────────────────
-function recalcValidUntil(days) {
+function recalcUntil(days) {
   if (days === undefined) {
     const active = document.querySelector('#dayChips .chip.active');
     days = active ? Number(active.dataset.days) : 15;
@@ -114,11 +114,11 @@ async function fetchDBD() {
       // sandboxed preview with no outbound network, or a genuine CORS block
       // with no proxy configured). For any other ID, the real error is
       // re-thrown and surfaced to the user as-is.
-      if (jid === DBD_TEST_ID) {
-        raw = mockDbdResponse(jid);
-      } else {
+      // if (jid === DBD_TEST_ID) {
+      //   raw = mockDbdResponse(jid);
+      // } else {
         throw fetchErr;
-      }
+      // }
     }
 
     const info = parseDbdResponse(raw);
@@ -167,63 +167,81 @@ function parseDbdResponse(raw) {
   return { nameTh, nameEn, address, status, capital: String(capital) };
 }
 
+// function buildDbdAddress(row) {
+//   const addrWrap = row['cd:OrganizationJuristicAddress'];
+//   const a = addrWrap && addrWrap['cr:AddressType'];
+//   if (!a) return '';
+
+//   const g = key => {
+//     const v = a[key];
+//     return (v !== null && v !== undefined && String(v).trim()) ? String(v).trim() : '';
+//   };
+//   const nested = (key, sub) => {
+//     const obj = a[key];
+//     if (!obj) return '';
+//     const v = obj[sub];
+//     return (v !== null && v !== undefined && String(v).trim()) ? String(v).trim() : '';
+//   };
+
+//   const parts = [
+//     g('cd:AddressNo'),
+//     g('cd:Moo')  && `หมู่ ${g('cd:Moo')}`,
+//     g('cd:Soi')  && `ซอย${g('cd:Soi')}`,
+//     g('cd:Road') && `ถนน${g('cd:Road')}`,
+//     nested('cd:CitySubDivision', 'cr:CitySubDivisionTextTH') &&
+//       `ตำบล/แขวง${nested('cd:CitySubDivision', 'cr:CitySubDivisionTextTH')}`,
+//     nested('cd:City', 'cr:CityTextTH') &&
+//       `อำเภอ/เขต${nested('cd:City', 'cr:CityTextTH')}`,
+//     nested('cd:CountrySubDivision', 'cr:CountrySubDivisionTextTH'),
+//   ];
+//   return parts.filter(Boolean).join(' ').trim();
+// }
+
 function buildDbdAddress(row) {
   const addrWrap = row['cd:OrganizationJuristicAddress'];
   const a = addrWrap && addrWrap['cr:AddressType'];
   if (!a) return '';
-
-  const g = key => {
-    const v = a[key];
-    return (v !== null && v !== undefined && String(v).trim()) ? String(v).trim() : '';
-  };
-  const nested = (key, sub) => {
-    const obj = a[key];
-    if (!obj) return '';
-    const v = obj[sub];
-    return (v !== null && v !== undefined && String(v).trim()) ? String(v).trim() : '';
-  };
-
-  const parts = [
-    g('cd:AddressNo'),
-    g('cd:Moo')  && `หมู่ ${g('cd:Moo')}`,
-    g('cd:Soi')  && `ซอย${g('cd:Soi')}`,
-    g('cd:Road') && `ถนน${g('cd:Road')}`,
-    nested('cd:CitySubDivision', 'cr:CitySubDivisionTextTH') &&
-      `ตำบล/แขวง${nested('cd:CitySubDivision', 'cr:CitySubDivisionTextTH')}`,
-    nested('cd:City', 'cr:CityTextTH') &&
-      `อำเภอ/เขต${nested('cd:City', 'cr:CityTextTH')}`,
-    nested('cd:CountrySubDivision', 'cr:CountrySubDivisionTextTH'),
-  ];
-  return parts.filter(Boolean).join(' ').trim();
+  let province = a['cd:CountrySubDivision']['cr:CountrySubDivisionTextTH'];
+  let subdistrict, district;
+  if (province == "กรุงเทพมหานคร") {
+    subdistrict = 'แขวง'+a['cd:CitySubDivision']['cr:CitySubDivisionTextTH'];
+    district = a['cd:City']['cr:CityTextTH'];
+  }
+  else {
+    province = 'จังหวัด'+province;
+    subdistrict = 'ตำบล'+a['cd:CitySubDivision']['cr:CitySubDivisionTextTH'];
+    district = 'อำเภอ'+a['cd:City']['cr:CityTextTH'];
+  }
+  return a["cd:Address"]+' '+subdistrict+' '+district+' '+province;
 }
 
 /** Mocked DBD response for the documented test ID, matching the real API shape exactly. */
-function mockDbdResponse(jid) {
-  return {
-    status: { code: '1000', description: 'Success' },
-    data: [{
-      'cd:OrganizationJuristicPerson': {
-        'cd:OrganizationJuristicID': jid,
-        'cd:OrganizationJuristicNameTH': 'บริษัท ตัวอย่าง ทดสอบระบบ จำกัด',
-        'cd:OrganizationJuristicNameEN': 'SAMPLE TEST COMPANY LIMITED',
-        'cd:OrganizationJuristicType': 'บริษัทจำกัด',
-        'cd:OrganizationJuristicRegisterDate': '20100115',
-        'cd:OrganizationJuristicStatus': 'ยังดำเนินกิจการอยู่',
-        'cd:OrganizationJuristicRegisterCapital': '5000000.0',
-        'cd:OrganizationJuristicPaidUpCapital': null,
-        'cd:OrganizationJuristicBranchName': 'สำนักงานใหญ่',
-        'cd:OrganizationJuristicAddress': {
-          'cr:AddressType': {
-            'cd:AddressNo': '99/9', 'cd:Moo': '4', 'cd:Soi': null, 'cd:Road': 'สุขุมวิท',
-            'cd:CitySubDivision': { 'cr:CitySubDivisionTextTH': 'บางนา' },
-            'cd:City': { 'cr:CityTextTH': 'บางนา' },
-            'cd:CountrySubDivision': { 'cr:CountrySubDivisionTextTH': 'กรุงเทพมหานคร' },
-          },
-        },
-      },
-    }],
-  };
-}
+// function mockDbdResponse(jid) {
+//   return {
+//     status: { code: '1000', description: 'Success' },
+//     data: [{
+//       'cd:OrganizationJuristicPerson': {
+//         'cd:OrganizationJuristicID': jid,
+//         'cd:OrganizationJuristicNameTH': 'บริษัท ตัวอย่าง ทดสอบระบบ จำกัด',
+//         'cd:OrganizationJuristicNameEN': 'SAMPLE TEST COMPANY LIMITED',
+//         'cd:OrganizationJuristicType': 'บริษัทจำกัด',
+//         'cd:OrganizationJuristicRegisterDate': '20100115',
+//         'cd:OrganizationJuristicStatus': 'ยังดำเนินกิจการอยู่',
+//         'cd:OrganizationJuristicRegisterCapital': '5000000.0',
+//         'cd:OrganizationJuristicPaidUpCapital': null,
+//         'cd:OrganizationJuristicBranchName': 'สำนักงานใหญ่',
+//         'cd:OrganizationJuristicAddress': {
+//           'cr:AddressType': {
+//             'cd:AddressNo': '99/9', 'cd:Moo': '4', 'cd:Soi': null, 'cd:Road': 'สุขุมวิท',
+//             'cd:CitySubDivision': { 'cr:CitySubDivisionTextTH': 'บางนา' },
+//             'cd:City': { 'cr:CityTextTH': 'บางนา' },
+//             'cd:CountrySubDivision': { 'cr:CountrySubDivisionTextTH': 'กรุงเทพมหานคร' },
+//           },
+//         },
+//       },
+//     }],
+//   };
+// }
 
 // ── Items ─────────────────────────────────────────────────────────────────────
 function addItemRow(data = {}) {
