@@ -359,10 +359,9 @@ function removeImage(id) {
 function calcRow(input) {
   const tr = input.closest('tr');
   const nums = tr.querySelectorAll('input');
-  
-  const qtyRaw = nums[2].value.replace(/,/g, '');
+  const qtyRaw = nums[1].value.replace(/,/g, '');
   const qty = parseFloat(qtyRaw) || 0;
-  const priceRaw = nums[4].value.replace(/,/g, '');
+  const priceRaw = nums[3].value.replace(/,/g, '');
   const price = parseFloat(priceRaw) || 0;
   
   const amt = qty * price;
@@ -530,21 +529,18 @@ function collectItems() {
     const description = descEl ? descEl.value.trim() : '';
 
     const inputs = tr.querySelectorAll('input[type=text], input[type=number]');
-    
-    const qtyRaw = inputs[1] ? inputs[1].value.replace(/,/g, '') : '0';
+    const qtyRaw = inputs[0] ? inputs[0].value.replace(/,/g, '') : '0';
     const qty    = parseFloat(qtyRaw) || 0;
     
-    const unit   = inputs[2] ? inputs[2].value.trim() : 'ชิ้น';
+    const unit   = inputs[1] ? inputs[1].value.trim() : 'ชิ้น';
     
-    const priceRaw = inputs[3] ? inputs[3].value.replace(/,/g, '') : '0';
+    const priceRaw = inputs[2] ? inputs[2].value.replace(/,/g, '') : '0';
     const price    = parseFloat(priceRaw) || 0;
 
     if (!description && qty === 0 && price === 0) return;
     
     items.push({ description, unit, qty, price, image: itemImages[id] || null });
   });
-  
-  console.log("items:", items)
   return items;
 }
 
@@ -804,19 +800,18 @@ async function buildPdf(fonts, items) {
 
   let subtotal = 0;
   for (const item of items) {
-  const amt = item.qty * item.price;
-  subtotal += amt;
+    const amt = item.qty * item.price;
+    subtotal += amt;
+    const descLines = wrapText(item.description || '-', fontRegular, 12, cols.find(c => c.key === 'desc').w - 10);
+    let rowH = Math.max(22, descLines.length * 11 + 8);
 
-  const descLines = wrapText(item.description || '-', fontRegular, 12, cols.find(c => c.key === 'desc').w - 10);
-  let rowH = Math.max(22, descLines.length * 11 + 8);
-
-  let imgDrawH = 0, imgDrawW = 0;
-  if (hasImg && item.image) {
-    const maxBox = 70;
-    const ratio = item.image.naturalW / item.image.naturalH;
-    if (ratio >= 1) { imgDrawW = maxBox; imgDrawH = maxBox / ratio; }
-    else      { imgDrawH = maxBox; imgDrawW = maxBox * ratio; }
-    rowH = Math.max(rowH, imgDrawH + 8);
+    let imgDrawH = 0, imgDrawW = 0;
+    if (hasImg && item.image) {
+      const maxBox = 70;
+      const ratio = item.image.naturalW / item.image.naturalH;
+      if (ratio >= 1) { imgDrawW = maxBox; imgDrawH = maxBox / ratio; }
+      else      { imgDrawH = maxBox; imgDrawW = maxBox * ratio; }
+      rowH = Math.max(rowH, imgDrawH + 8);
   }
 
   if (y - rowH < MARGIN + 140) {
