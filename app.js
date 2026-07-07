@@ -760,7 +760,7 @@ async function buildPdf(fonts, items) {
   let ry = y - 14;
   const metaRow = (label, val) => {
     text(label, rightX + 8, ry, { size: 14, font: fontBold, color: INK });
-    text(val || '-', rightX + 8, ry - 10, { size: 14, color: INK });
+    text(val || '-', rightX + 8, ry - 10, { size: 14, color: GRAY });
     ry -= 28;
   };
   metaRow('เลขที่ / No.', document.getElementById('quoteNo').value);
@@ -880,11 +880,11 @@ async function buildPdf(fonts, items) {
   ];
   const trH = 20;
   totalRows.forEach((row, i) => {
-  const isLast = i === totalRows.length - 1;
-  rect(totalsX, y, totalsW, trH, { fill: isLast ? LIGHT : WHITE, border: LINEC, borderWidth: 0.75 });
-  text(row.label, totalsX + 8, y - 13.5, { size: isLast ? 9.5 : 9, font: isLast ? fontBold : fontRegular, color: isLast ? BLUE : GRAY });
-  text(row.val, totalsX, y - 13.5, { size: isLast ? 10.5 : 9.5, font: isLast ? fontBold : fontRegular, color: isLast ? BLUE : INK, align: 'right', maxWidth: totalsW - 8 });
-  y -= trH;
+    const isLast = i === totalRows.length - 1;
+    rect(totalsX, y, totalsW, trH, { fill: isLast ? LIGHT : WHITE, border: LINEC, borderWidth: 0.75 });
+    text(row.label, totalsX + 8, y - 13.5, { size: isLast ? 12.5 : 12, font: isLast ? fontBold : fontRegular, color: isLast ? BLUE : GRAY });
+    text(row.val, totalsX, y - 13.5, { size: isLast ? 12.5 : 12, font: isLast ? fontBold : fontRegular, color: isLast ? BLUE : INK, align: 'right', maxWidth: totalsW - 8 });
+    y -= trH;
   });
 
   y -= 18;
@@ -892,9 +892,9 @@ async function buildPdf(fonts, items) {
   // ── Notes ──
   const notes = document.getElementById('notes').value.trim();
   if (notes) {
-  text('หมายเหตุ / Remark', MARGIN, y, { size: 9.5, font: fontBold, color: NAVY });
+  text('หมายเหตุ / Remark', MARGIN, y, { size: 12.5, font: fontBold, color: NAVY });
   y -= 13;
-  wrapText(notes, fontRegular, 9, CONTENT_W).forEach(ln => { text(ln, MARGIN, y, { size: 9, color: GRAY }); y -= 11; });
+  wrapText(notes, fontRegular, 12, CONTENT_W).forEach(ln => { text(ln, MARGIN, y, { size: 12, color: GRAY }); y -= 11; });
   y -= 6;
   }
 
@@ -905,15 +905,15 @@ async function buildPdf(fonts, items) {
 
   // ── Signature block ──
   const sigW = (CONTENT_W - 16) / 2;
-  const sigH = 78;
+  const sigH = 100;
   [MARGIN, MARGIN + sigW + 16].forEach((sx, idx) => {
   rect(sx, y, sigW, sigH, { border: LINEC, borderWidth: 1 });
-  text('.'.repeat(40), sx, y - 36, { size: 9, color: GRAY, align: 'center', maxWidth: sigW });
+  text('.'.repeat(40), sx, y - 36, { size: 14, color: GRAY, align: 'center', maxWidth: sigW });
   const nameLabel = idx === 0 ? `(${buyer.name || '...........................'})` : `(${seller.name})`;
-  text(nameLabel, sx, y - 50, { size: 9, color: INK, align: 'center', maxWidth: sigW });
+  text(nameLabel, sx, y - 53, { size: 13, color: INK, align: 'center', maxWidth: sigW });
   const roleLabel = idx === 0 ? 'ผู้อนุมัติสั่งซื้อ / Customer Signature' : 'ผู้มีอำนาจลงนาม / Authorized Signature';
-  text(roleLabel, sx, y - 64, { size: 9, font: fontBold, color: INK, align: 'center', maxWidth: sigW });
-  text('วันที่/Date ........................', sx, y - 74, { size: 8.5, color: GRAY, align: 'center', maxWidth: sigW });
+  text(roleLabel, sx, y - 67, { size: 13.5, font: fontBold, color: INK, align: 'center', maxWidth: sigW });
+  text('วันที่/Date .........................................', sx, y - 85, { size: 13, color: GRAY, align: 'center', maxWidth: sigW });
   });
 
   return pdfDoc.save();
