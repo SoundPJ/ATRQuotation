@@ -905,7 +905,7 @@ async function buildPdf(fonts, items) {
 
   // ── Signature block ──
   const sigW = (CONTENT_W - 16) / 2;
-  const sigH = 100;
+  const sigH = 105;
   [MARGIN, MARGIN + sigW + 16].forEach((sx, idx) => {
   rect(sx, y, sigW, sigH, { border: LINEC, borderWidth: 1 });
   text('.'.repeat(40), sx, y - 36, { size: 14, color: GRAY, align: 'center', maxWidth: sigW });
@@ -913,7 +913,7 @@ async function buildPdf(fonts, items) {
   text(nameLabel, sx, y - 53, { size: 13, color: INK, align: 'center', maxWidth: sigW });
   const roleLabel = idx === 0 ? 'ผู้อนุมัติสั่งซื้อ / Customer Signature' : 'ผู้มีอำนาจลงนาม / Authorized Signature';
   text(roleLabel, sx, y - 67, { size: 13.5, font: fontBold, color: INK, align: 'center', maxWidth: sigW });
-  text('วันที่/Date .........................................', sx, y - 85, { size: 13, color: GRAY, align: 'center', maxWidth: sigW });
+  text('วันที่/Date .........................................', sx, y - 90, { size: 13, color: GRAY, align: 'center', maxWidth: sigW });
   });
 
   return pdfDoc.save();
