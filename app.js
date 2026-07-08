@@ -39,50 +39,25 @@ const DEFAULT_ISSUERS = [
   }
 ];
 
-// ── Password Gate Verification ───────────────────────────────────────────────
-// แฮช SHA-256 ของรหัสผ่าน "000999" (คำนวณไว้ล่วงหน้าเพื่อใช้ตรวจเช็กโดยไม่ต้องโชว์รหัสดิบ)
-const TARGET_PASS_HASH = "7a6a7bdfdc75d493c1893ae45b8e74a6f1ef5fad27e63e01e142fc75cc2bbcd5";
-
-function checkGatePassword() {
-  const input = document.getElementById('gatePassInput').value;
-  const errEl = document.getElementById('gateErr');
-  
-  // แปลงค่าที่กรอกเป็น SHA-256 Hash เพื่อนำไปตรวจสอบความถูกต้อง
-  const inputHash = CryptoJS.SHA256(input).toString(CryptoJS.enc.Hex);
-  
-  if (inputHash === TARGET_PASS_HASH) {
-  document.getElementById('passGate').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'block';
-  // รันกระบวนการตั้งค่าเริ่มต้นของแอปพลิเคชัน
-  initAppLogic();
-  } else {
-  errEl.textContent = "❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
-  document.getElementById('gatePassInput').value = '';
-  document.getElementById('gatePassInput').focus();
-  }
-}
-
 // ── Init App ─────────────────────────────────────────────────────────────────
-function initAppLogic() {
-  const today = new Date();
-  document.getElementById('quoteDate').value = isoDate(today);
+const today = new Date();
+document.getElementById('quoteDate').value = isoDate(today);
 
-  recalcValidUntil();
-  updateQuoteNo();
+recalcValidUntil();
+updateQuoteNo();
 
-  document.querySelectorAll('#dayChips .chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('#dayChips .chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      recalcValidUntil(Number(chip.dataset.days));
-    });
-  });
-
-  document.getElementById('validUntil').addEventListener('change', () => {
+document.querySelectorAll('#dayChips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
     document.querySelectorAll('#dayChips .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    recalcValidUntil(Number(chip.dataset.days));
   });
-  if (document.getElementById('itemsBody').children.length === 0) addItemRow();
-}
+});
+
+document.getElementById('validUntil').addEventListener('change', () => {
+  document.querySelectorAll('#dayChips .chip').forEach(c => c.classList.remove('active'));
+});
+if (document.getElementById('itemsBody').children.length === 0) addItemRow();
 
 function isoDate(d) { return d.toISOString().slice(0, 10); }
 
@@ -147,7 +122,6 @@ async function fetchDBDForSeller() {
   const info = parseDbdResponse(raw);
   if (info.error) throw new Error(info.error);
 
-  // document.getElementById('sellerName').value  = info.nameTh || info.nameEn || '';
   document.getElementById('sellerName').value = info.nameTh+' (สำนักงานใหญ่)';
   document.getElementById('sellerAddress').value = info.address || '';
   document.getElementById('sellerTaxId').value   = jid;
@@ -232,7 +206,6 @@ async function fetchDBD() {
   const info = parseDbdResponse(raw);
   if (info.error) throw new Error(info.error);
 
-  // document.getElementById('buyerName').value = info.nameTh || info.nameEn || '';
   document.getElementById('buyerName').value  = info.nameTh+' (สำนักงานใหญ่)';
   document.getElementById('buyerAddress').value = info.address || '';
   document.getElementById('buyerTaxId').value   = jid;
@@ -302,17 +275,16 @@ function addItemRow(data = {}) {
   tr.className = 'irow';
   tr.dataset.itemId = id;
 
-  // <td><input type="text" placeholder="ชื่อสินค้า / รายละเอียด" value="${esc(data.desc || '')}" style="min-width:180px"></td>
   tr.innerHTML = `
   <td style="text-align:center;color:var(--gray);font-size:12.5px;">${tbody.children.length + 1}</td>
   <td class="img-cell">
-    <div class="img-thumb-wrap" onclick="document.getElementById('file${id}').click()" id="thumb${id}">
-    <span class="placeholder">🖼</span>
-    </div>
-    <input type="file" id="file${id}" accept="image/*" onchange="handleImageSelect(${id}, this)">
+  <div class="img-thumb-wrap" onclick="document.getElementById('file${id}').click()" id="thumb${id}">
+  <span class="placeholder">🖼</span>
+  </div>
+  <input type="file" id="file${id}" accept="image/*" onchange="handleImageSelect(${id}, this)">
   </td>
   <td><textarea placeholder="ชื่อสินค้า / รายละเอียด" style="font-family: 'Sarabun', sans-serif; min-width:350px; resize:vertical;">${esc(data.desc || '')}</textarea></td>
-  <td><input type="text" class="num" placeholder="1" value="1" min="0" step="any" oninput="formatInputComma(this)" style="width:55px background:#fff;"></td>
+  <td><input type="text" class="num" placeholder="1" min="0" step="any" oninput="formatInputComma(this)" style="width:55px background:#fff;"></td>
   <td><input type="text" placeholder="ชิ้น" value="ชิ้น" style="width:55px;text-align:center"></td>
   
   <td><input type="text" class="num" placeholder="0.00" value="${data.price ? fmtNum(data.price) : ''}" oninput="formatInputComma(this)"></td>
@@ -446,7 +418,6 @@ function normalizeThaiText(str) {
 }
 
 let cachedFonts = null;
-// const FONT_URL_REGULAR_FALLBACK = 'https://fonts.gstatic.com/s/sarabun/v17/DtVjJx26TKEr37c9WBI.ttf';
 
 async function resolveFontUrls() {
   let regular = 'fonts/THSarabunNew.ttf';
@@ -551,6 +522,14 @@ async function buildPdf(fonts, items) {
 
   const fontRegular = await pdfDoc.embedFont(fonts.regular, { subset: true });
   const fontBold   = await pdfDoc.embedFont(fonts.bold, { subset: true });
+
+  let signatureImage = null;
+  try {
+    const sigBytes = await fetch("data/signature.png").then((res) => res.arrayBuffer());
+    signatureImage = await pdfDoc.embedPng(sigBytes);
+  } catch (imgErr) {
+    console.warn("โหลดไฟล์ลายเซ็นไม่สำเร็จแต่ระบบจะทำงานต่อได้:", imgErr);
+  }
 
   const fkRegular = fontkit.create(new Uint8Array(fonts.regular));
   const fkBold  = fontkit.create(new Uint8Array(fonts.bold));
@@ -908,8 +887,22 @@ async function buildPdf(fonts, items) {
   const sigH = 105;
   [MARGIN, MARGIN + sigW + 16].forEach((sx, idx) => {
   rect(sx, y, sigW, sigH, { border: LINEC, borderWidth: 1 });
+
+  if (idx === 1 && signatureImage) {
+    const sigDims = signatureImage.scale(0.08); 
+    const sigX = sx + (sigW - sigDims.width) / 2;
+    const sigY = y - 32; 
+    
+    page.drawImage(signatureImage, {
+      x: sigX,
+      y: sigY,
+      width: sigDims.width,
+      height: sigDims.height,
+    });
+  }
+  
   text('.'.repeat(40), sx, y - 36, { size: 14, color: GRAY, align: 'center', maxWidth: sigW });
-  const nameLabel = idx === 0 ? `(${buyer.name || '...........................'})` : `(${seller.name})`;
+  const nameLabel = idx === 0 ? `${buyer.name || '...........................'}` : `${seller.name}`;
   text(nameLabel, sx, y - 53, { size: 13, color: INK, align: 'center', maxWidth: sigW });
   const roleLabel = idx === 0 ? 'ผู้อนุมัติสั่งซื้อ / Customer Signature' : 'ผู้มีอำนาจลงนาม / Authorized Signature';
   text(roleLabel, sx, y - 67, { size: 13.5, font: fontBold, color: INK, align: 'center', maxWidth: sigW });

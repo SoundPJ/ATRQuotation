@@ -1,0 +1,346 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATIRUJ — ใบเสนอราคา / Quotation Generator</title>
+
+<!-- pdf-lib + fontkit, loaded from CDN (runs in the user's browser on GitHub Pages) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+  :root{
+    --navy:#0F2D5E; --blue:#1A56A0; --sky:#3B82F6; --light:#EBF3FF;
+    --accent:#F59E0B; --green:#16A34A; --red:#DC2626; --gray:#6B7280;
+    --line:#D8DEE6; --bg:#F4F6FA; --ink:#1F2937; --radius:10px;
+    --shadow:0 2px 14px rgba(15,45,94,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;}
+
+  .topbar{background:var(--navy);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+  .brand{color:#fff;font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;}
+  .brand span{color:var(--accent);}
+  .topbar-actions{display:flex;gap:10px;}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-family:'Sarabun',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap;}
+  .btn-accent{background:var(--accent);color:#1a1a1a;}
+  .btn-accent:hover{filter:brightness(1.08);}
+  .btn-outline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.4);}
+  .btn-outline:hover{background:rgba(255,255,255,.08);}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-ghost{background:transparent;color:var(--gray);border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+  .btn-sm{padding:5px 11px;font-size:12.5px;}
+  .btn:disabled{opacity:.55;cursor:not-allowed;}
+
+  .container{max-width:920px;margin:0 auto;padding:24px 18px 60px;}
+
+  .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+  .card-header{background:var(--light);border-bottom:1.5px solid #D1E4FF;padding:12px 20px;font-size:13.5px;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:7px;}
+  .card-body{padding:20px;}
+
+  /* ส่วนเลือกบริษัทผู้ขาย */
+  .issuer-selector{display:flex;gap:16px;flex-wrap:wrap;background:#f8fafc;padding:12px 16px;border-radius:8px;border:1.5px dashed var(--line);margin-bottom:16px;}
+  .issuer-radio{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--ink);cursor:pointer;font-size:14px;}
+  .issuer-radio input{width:auto;cursor:pointer;}
+  .custom-seller-dbd{background:#fff;border:1.5px solid #D1E4FF;border-radius:8px;padding:12px;margin-top:10px;display:none;}
+  .custom-seller-dbd.show{display:block;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 18px;}
+  .grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+  .span-2{grid-column:span 2;}
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:11.5px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;}
+  .field input,.field select,.field textarea,.irow textarea{
+    font-family:'Sarabun',sans-serif;font-size:14px;padding:8px 11px;border:1.5px solid var(--line);
+    border-radius:7px;background:#FAFBFD;color:var(--ink);width:100%;transition:.15s;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus,.irow textarea:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(59,130,246,.12);background:#fff;}
+  .field textarea{resize:vertical;min-height:60px;}
+
+  .dbd-box{background:var(--light);border:1.5px solid #D1E4FF;border-radius:8px;padding:13px 15px;margin-bottom:16px;}
+  .dbd-title{font-size:12.5px;font-weight:700;color:var(--blue);margin-bottom:9px;}
+  .dbd-row{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;}
+  .dbd-row .field{flex:1;min-width:160px;}
+  .dbd-status{margin-top:7px;font-size:12.5px;min-height:18px;}
+  .dbd-status.ok{color:var(--green);}
+  .dbd-status.err{color:var(--red);}
+  .dbd-status.wait{color:var(--gray);}
+  .proxy-toggle{font-size:11.5px;color:var(--gray);margin-top:6px;cursor:pointer;text-decoration:underline;display:inline-block;}
+  .proxy-row{display:none;margin-top:8px;}
+  .proxy-row.show{display:flex;gap:8px;}
+  .proxy-row .field{flex:1;}
+
+  table.items{width:100%;border-collapse:collapse;}
+  table.items thead tr{background:var(--navy);color:#fff;}
+  table.items th{padding:8px 7px;font-size:11.5px;font-weight:600;text-align:left;white-space:nowrap;}
+  table.items th.num{text-align:right;}
+  table.items th.center{text-align:center;}
+  .irow td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .irow:hover{background:#F9FBFF;}
+  .irow input{font-family:'Sarabun',sans-serif;font-size:13.5px;padding:6px 8px;border:1.5px solid var(--line);border-radius:6px;width:100%;background:#FAFBFD;}
+  .irow input:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(59,130,246,.12);background:#fff;}
+  .irow input.num{text-align:right;}
+  .line-total{text-align:right;font-weight:600;color:var(--blue);font-size:13.5px;white-space:nowrap;padding-right:6px;}
+  .del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:17px;padding:3px 6px;border-radius:5px;}
+  .del-btn:hover{color:var(--red);background:#FEE2E2;}
+
+  .img-cell{text-align:center;}
+  .img-thumb-wrap{position:relative;display:inline-block;width:42px;height:42px;border-radius:6px;overflow:hidden;border:1.5px dashed var(--line);background:#FAFBFD;cursor:pointer;}
+  .img-thumb-wrap img{width:100%;height:100%;object-fit:contain;}
+  .img-thumb-wrap .placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:17px;color:#bbb;}
+  .img-thumb-wrap .rm-img{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;width:15px;height:15px;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+  .hint{font-size:12px;color:var(--gray);}
+
+  .totals-wrap{display:flex;justify-content:flex-end;padding-top:12px;}
+  .totals-box{width:300px;}
+  .trow{display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px;border-bottom:1px solid var(--line);}
+  .trow:last-child{border-bottom:none;border-top:2px solid var(--blue);padding-top:9px;margin-top:3px;font-size:15.5px;font-weight:700;color:var(--blue);}
+  .trow .val{font-weight:600;}
+
+  .quick-days{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .chip{padding:4px 11px;border-radius:14px;border:1.5px solid var(--line);font-size:12px;cursor:pointer;background:#fff;color:var(--gray);transition:.15s;}
+  .chip.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+  #toast{position:fixed;bottom:26px;right:26px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:9px;font-size:13.5px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.3s;z-index:999;max-width:360px;}
+  #toast.show{opacity:1;}
+  #toast.ok{border-left:4px solid var(--green);}
+  #toast.err{border-left:4px solid var(--red);}
+
+  #overlay{display:none;position:fixed;inset:0;background:rgba(15,45,94,.55);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+  #overlay.show{display:flex;}
+  .spinner{width:44px;height:44px;border:5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #overlay p{color:#fff;font-size:15px;font-weight:500;}
+
+  input[type=file]{display:none;}
+
+  @media(max-width:640px){
+    .grid,.grid.cols-3{grid-template-columns:1fr;}
+    .span-2{grid-column:span 1;}
+    .card-body{padding:13px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">📄 ATIRUJ <span>ใบเสนอราคา</span></div>
+  <div class="topbar-actions">
+    <button class="btn btn-outline btn-sm" onclick="resetForm()">🔄 เริ่มใหม่</button>
+    <button class="btn btn-accent btn-sm" onclick="exportPDF()">⬇ สร้าง PDF</button>
+  </div>
+</div>
+
+<div id="overlay"><div class="spinner"></div><p id="overlay-msg">กำลังเตรียม PDF...</p></div>
+<div id="toast"></div>
+
+<div class="container">
+
+  <!-- Seller / Document info -->
+  <div class="card">
+    <div class="card-header">🏢 ข้อมูลบริษัท &amp; เลขที่เอกสาร</div>
+    <div class="card-body">
+      
+      <!-- ตัวเลือกบริษัทผู้ขาย (Issuer Selector) -->
+      <div class="issuer-selector">
+        <label class="issuer-radio"><input type="radio" name="issuerSelect" value="0" checked onchange="handleIssuerChange()"> ATR </label>
+        <label class="issuer-radio"><input type="radio" name="issuerSelect" value="1" onchange="handleIssuerChange()"> SM </label>
+        <label class="issuer-radio"><input type="radio" name="issuerSelect" value="2" onchange="handleIssuerChange()"> AI </label>
+        <label class="issuer-radio"><input type="radio" name="issuerSelect" value="custom" onchange="handleIssuerChange()"> ➕ บริษัทอื่นๆ (ดึงจาก DBD)</label>
+      </div>
+
+      <!-- กล่องค้นหา DBD สำหรับฝั่งผู้ขาย (จะแสดงเมื่อเลือกบริษัทอื่นๆ) -->
+      <div id="sellerDbdBox" class="custom-seller-dbd">
+        <div class="dbd-title" style="color:var(--navy)">🏛 ค้นหาข้อมูลผู้ขายจาก DBD OpenAPI</div>
+        <div class="dbd-row">
+          <div class="field">
+            <label>เลขนิติบุคคลผู้ขาย 13 หลัก</label>
+            <input type="text" id="sellerJuristicId" placeholder="เลข 13 หลักของผู้ขาย" maxlength="13" oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <button class="btn btn-primary btn-sm" id="sellerDbdBtn" onclick="fetchDBDForSeller()">🔍 ดึงข้อมูลผู้ขาย</button>
+        </div>
+        <div class="dbd-status wait" id="sellerDbdStatus" style="font-size:12px;">กรอกเลข 13 หลักแล้วกดดึงข้อมูล</div>
+      </div>
+
+      <div class="grid cols-3" style="margin-bottom:14px; margin-top:14px;">
+        <div class="field">
+          <label>เลขที่เอกสาร (กรอกแค่ลำดับ)</label>
+          <input type="text" id="seqInput" placeholder="1" oninput="updateQuoteNo()">
+        </div>
+        <div class="field">
+          <label>เลขที่เต็ม / Quote No.</label>
+          <input type="text" id="quoteNo" readonly style="background:#eef2f7;font-weight:600;color:var(--blue)">
+        </div>
+        <div class="field">
+          <label>วันที่ออกเอกสาร</label>
+          <input type="date" id="quoteDate" onchange="updateQuoteNo(); recalcValidUntil();">
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label>ยืนราคาถึง / Valid Until</label>
+        <div class="quick-days" id="dayChips">
+          <span class="chip" data-days="7">7 วัน</span>
+          <span class="chip" data-days="15">15 วัน</span>
+          <span class="chip active" data-days="30">30 วัน</span>
+          <span class="chip" data-days="60">60 วัน</span>
+          <span class="chip" data-days="90">90 วัน</span>
+        </div>
+        <input type="date" id="validUntil" style="margin-top:8px;max-width:220px">
+      </div>
+
+      <div class="grid">
+        <div class="field span-2">
+          <label>ชื่อบริษัทผู้ขาย</label>
+          <input type="text" id="sellerName" value="บริษัท อติรุจ จำกัด">
+        </div>
+        <div class="field span-2">
+          <label>ที่อยู่ผู้ขาย</label>
+          <input type="text" id="sellerAddress" value="สำนักงานใหญ่: 1486 หมู่7 ถ.เทพารักษ์ ต.เทพารักษ์ อ.เมืองสมุทรปราการ จ.สมุทรปราการ 10270">
+        </div>
+        <div class="field">
+          <label>เลขผู้เสียภาษี</label>
+          <input type="text" id="sellerTaxId" value="0115538001694" maxlength="13">
+        </div>
+        <div class="field">
+          <label>โทร</label>
+          <input type="text" id="sellerPhone" value="02-759-6861, 087-689-4080">
+        </div>
+        <div class="field span-2">
+          <label>อีเมล / Line ID</label>
+          <input type="text" id="sellerEmail" value="atiruj.co@gmail.com   |   Line ID: atiruj.co">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buyer -->
+  <div class="card">
+    <div class="card-header">🔍 ข้อมูลลูกค้า — ดึงจาก DBD</div>
+    <div class="card-body">
+
+      <div class="dbd-box">
+        <div class="dbd-title">🏛 ค้นหาจากกรมพัฒนาธุรกิจการค้า (DBD OpenAPI) — ไม่ต้องใช้ API Key</div>
+        <div class="dbd-row">
+          <div class="field">
+            <label>เลขทะเบียนนิติบุคคล 13 หลัก</label>
+            <input type="text" id="juristicId" placeholder="0107567000414" maxlength="13"
+                    oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <button class="btn btn-primary" id="dbdBtn" onclick="fetchDBD()">🔍 ดึงข้อมูล</button>
+        </div>
+        <div class="dbd-status wait" id="dbdStatus">กรอกเลขนิติบุคคล 13 หลักแล้วกด ดึงข้อมูล (ลองใช้ 0107567000414 เพื่อทดสอบ)</div>
+        <span class="proxy-toggle" onclick="toggleProxyRow()">⚙ ตั้งค่า CORS Proxy (กรณีดึงข้อมูลตรงไม่ได้)</span>
+        <div class="proxy-row" id="proxyRow">
+          <div class="field">
+            <label>CORS Proxy URL (นำหน้า URL ของ DBD)</label>
+            <input type="text" id="proxyUrl" placeholder="https://corsproxy.io/?url=">
+          </div>
+          <div class="field" style="flex:0 0 auto;align-self:flex-end;">
+            <label style="visibility:hidden">.</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--gray);font-weight:400;text-transform:none;">
+              <input type="checkbox" id="useProxy" style="width:auto;"> ใช้ Proxy นี้
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field span-2">
+          <label>ชื่อลูกค้า</label>
+          <!-- <input type="text" id="buyerName" placeholder="บริษัท ลูกค้า จำกัด" value="บริษัท ตัวอย่าง จำกัด (สำนักงานใหญ่)"> -->
+          <input type="text" id="buyerName" value="บริษัท ตัวอย่าง จำกัด (สำนักงานใหญ่)">
+        </div>
+        <div class="field span-2">
+          <label>ที่อยู่</label>
+          <!-- <input type="text" id="buyerAddress" placeholder="ที่อยู่ลูกค้า" value="123 หมู่4 แขวงดินแดง เขตดินแดง กรุงเทพมหานคร"> -->
+          <input type="text" id="buyerAddress" value="123 หมู่4 แขวงดินแดง เขตดินแดง กรุงเทพมหานคร">
+        </div>
+        <div class="field">
+          <label>เลขประจำตัวผู้เสียภาษี</label>
+          <!-- <input type="text" id="buyerTaxId" placeholder="0123456789123" maxlength="13" value="0123456789123"> -->
+          <input type="text" id="buyerTaxId" maxlength="13" value="0123456789123">
+        </div>
+        <div class="field">
+          <label>เครดิต (วัน)</label>
+          <!-- <input type="text" id="buyerCredit" placeholder="30 วัน" value="30 วัน"> -->
+          <input type="text" id="buyerCredit" value="30 วัน">
+        </div>
+        <div class="field">
+          <label>อีเมล</label>
+          <!-- <input type="email" id="buyerEmail" placeholder="customer@email.com"> -->
+          <input type="email" id="buyerEmail" value="customer@email.com">
+        </div>
+        <div class="field">
+          <label>โทร</label>
+          <!-- <input type="text" id="buyerPhone" placeholder="08x-xxx-xxxx"> -->
+          <input type="text" id="buyerPhone" value="08x-xxx-xxxx">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="card">
+    <div class="card-header">📦 รายการสินค้า</div>
+    <div class="card-body">
+      <div class="toolbar">
+        <span class="hint">คลิกไอคอนรูปเพื่อแนบรูปสินค้า • รูปจะถูกคงอัตราส่วนเดิมเสมอ</span>
+        <button class="btn btn-primary btn-sm" onclick="addItemRow()">➕ เพิ่มรายการ</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="items">
+          <thead>
+            <tr>
+              <th style="width:30px" class="center">#</th>
+              <th style="width:50px" class="center">รูป</th>
+              <th class="center">รายละเอียด</th>
+              <th style="width:90px" class="center">จำนวน</th>
+              <th style="width:60px" class="center">หน่วย</th>
+              <th style="width:95px" class="num">ราคา/หน่วย</th>
+              <th style="width:100px" class="num">จำนวนเงิน</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <div class="totals-wrap">
+        <div class="totals-box">
+          <div class="trow"><span>รวมเป็นเงิน / Subtotal</span><span class="val" id="subtotal">0.00</span></div>
+          <div class="trow"><span>ภาษีมูลค่าเพิ่ม / VAT 7%</span><span class="val" id="vatAmt">0.00</span></div>
+          <div class="trow"><span>จำนวนเงินรวมทั้งสิ้น</span><span id="grandTotal">0.00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card">
+    <div class="card-header">📝 หมายเหตุ &amp; สร้างเอกสาร</div>
+    <div class="card-body">
+      <div class="field" style="margin-bottom:16px">
+        <label>หมายเหตุ / Remark</label>
+        <textarea id="notes" placeholder="เงื่อนไขการชำระเงิน, การจัดส่ง, อื่นๆ..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="resetForm()">🔄 เริ่มใหม่</button>
+        <button class="btn btn-accent" onclick="exportPDF()" style="padding:10px 26px;font-size:14.5px;">📄 สร้างใบเสนอราคา PDF</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
