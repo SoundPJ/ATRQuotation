@@ -234,7 +234,8 @@
           <div class="field">
             <label>เลขทะเบียนนิติบุคคล 13 หลัก</label>
             <input type="text" id="juristicId" placeholder="0107567000414" maxlength="13"
-                    oninput="this.value=this.value.replace(/\D/g,'')">
+                    oninput="this.value=this.value.replace(/\D/g,'')"
+                    onkeydown="if(event.key === 'Enter'){ event.preventDefault(); fetchDBD(); }">
           </div>
           <button class="btn btn-primary" id="dbdBtn" onclick="fetchDBD()">🔍 ดึงข้อมูล</button>
         </div>
